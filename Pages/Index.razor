@@ -1,0 +1,225 @@
+﻿@page "/"
+
+@using RihalAssesment.Data
+@using RihalAssesment.Model
+
+@inject StudentService service
+@inject CountryService countryService
+@inject ClassService classService
+
+<h1 style="text-align:center">Students Details</h1>
+
+<div class="container">
+    <div class="row bg-light">
+        <table class="table table-bordered">
+            <thead class="thead-dark">
+                <tr>
+                    <th>Student Id</th>
+                    <th>Name</th>
+                    <th>Class Name</th>
+                    <th>Country Name</th>
+                    <th>Date of birth</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Students.Any())
+                {
+                    @foreach (var stud in stdDetails)
+                    {
+                        <tr @onclick="(() => SetProductForUpdate(stud))">
+                            <td>@stud.student_id</td>
+                            <td>@stud.name</td>
+                            <td>@stud.class_name</td>
+                            <td>@stud.country_name</td>
+                            <td>@stud.date_of_birth</td>
+                            <td><button class="btn btn-danger" @onclick="(() => DeleteStudent(stud))">Delete</button></td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="6" style="text-align:center"><strong>No data available</strong></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <div class="row m-5">
+        <div class="col-5 bg-light m-2 justify-content-start">
+
+            <div class="p-3 mb-3 bg-primary text-white text-center">Add New Student</div>
+
+            <EditForm Model="@NewStudent">
+                <div class="form-group">
+                    <label for="name">Name</label>
+                    <input type="text" id="name" class="form-control" @bind-value="@NewStudent.name" />
+                </div>
+
+                <div class="form-group">
+                    <label for="price">Class</label>
+                    <input type="text" style="display: none;" id="price" class="form-control" @bind="@NewStudent.class_id" />
+                    <select class="form-control" @onchange="setClass">
+                        <option value="">-- Select Class --</option>
+                        @if (classes != null)
+                        {
+                            @foreach (var cls in classes)
+                            {
+                                <option value="@cls.id">@cls.class_name</option>
+                            }
+                        }
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="quantity">Country</label>
+                    <input type="text" id="quantity" style="visibility:hidden" class="form-control" @bind="@NewStudent.country_id" />
+                    <select class="form-control" @onchange="setCountry">
+                        <option value="">-- Select Country --</option>
+                        @if (country != null)
+                        {
+                            @foreach (var cls in country)
+                            {
+                                <option value="@cls.id">@cls.country_name</option>
+                            }
+                        }
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="Description">Date of birth</label>
+                    <input type="date" id="Description" class="form-control" @bind="@NewStudent.date_of_birth" />
+                </div>
+
+                <div class="text-center p-3 mb-3">
+                    <button class="btn btn-info" @onclick="AddNewStudent"> Add Student</button>
+                </div>
+            </EditForm>
+        </div>
+
+        <div class="col-5 bg-light m-2 justify-content-end">
+            <div class="p-3 mb-1 bg-primary text-white text-center">Update Student</div>
+
+            <EditForm Model="@UpdateStudent">
+                <div class="form-group">
+                    <label for="name">Name</label>
+                    <input type="text" id="name" class="form-control" @bind-value="@UpdateStudent.name" />
+                </div>
+
+                @*<div class="form-group">
+                    <label for="price">Class</label>
+                    <input type="text" id="price" class="form-control" @bind="@UpdateStudent.class_id" disabled />
+                </div>
+
+                <div class="form-group">
+                    <label for="quantity">Country</label>
+                    <input type="text" id="quantity" class="form-control" @bind="@UpdateStudent.country_id" disabled />
+                </div>*@
+
+                <div class="form-group">
+                    <label for="Description">Date of birth</label>
+                    <input type="date" id="Description" class="form-control" @bind="@UpdateStudent.date_of_birth" />
+                </div>
+
+                <div class="text-center p-3 mb-3">
+                    <button class="btn btn-info" @onclick="UpdateStudentData"> Update Student</button>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+</div>
+
+
+@code {
+    List<Students> Students = new List<Students>();
+    List<country> country = new List<country>();
+    List<classes> classes = new List<classes>();
+    List<StudentDetails> stdDetails = new List<StudentDetails>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await RefreshStudents();
+    }
+
+    private async Task RefreshStudents()
+    {
+        Students = await service.GetStudentsAsync();
+        country = await countryService.GetCountryAsync();
+        classes = await classService.GetClassesAsync();
+
+        stdDetails = Students.Select(p => new StudentDetails
+        {
+            student_id = p.id,
+            name = p.name,
+            date_of_birth = p.date_of_birth.Date.ToShortDateString().ToString(),
+            country_id = p.country_id,
+            class_id = p.class_id
+        }).ToList();
+
+        foreach (var value in stdDetails)
+        {
+            value.country_name = country.Where(x => x.id == value.country_id).FirstOrDefault()?.country_name;
+            value.class_name = classes.Where(y => y.id == value.class_id).FirstOrDefault()?.class_name;
+        }
+    }
+
+
+    public Students NewStudent { get; set; } = new Students();
+
+    private async Task AddNewStudent()
+    {
+        await service.AddStudentAsync(NewStudent);
+        NewStudent = new Students();
+        await RefreshStudents();
+    }
+
+    Students UpdateStudent = new Students();
+    private void SetProductForUpdate(StudentDetails std)
+    {
+        UpdateStudent.id = std.student_id;
+        UpdateStudent.class_id = std.class_id;
+        UpdateStudent.country_id = std.country_id;
+        UpdateStudent.name = std.name;
+        UpdateStudent.date_of_birth = Convert.ToDateTime(std.date_of_birth);
+
+        //UpdateStudent = std;
+    }
+
+    private async Task UpdateStudentData()
+    {
+        await service.updateStudentAsync(UpdateStudent);
+        await RefreshStudents();
+    }
+
+    private async Task DeleteStudent(StudentDetails std)
+    {
+        Students delStd = new Students();
+        delStd.id = std.student_id;
+        delStd.class_id = std.class_id;
+        delStd.country_id = std.country_id;
+        delStd.name = std.name;
+        delStd.date_of_birth = Convert.ToDateTime(std.date_of_birth);
+
+        await service.DeleteStudentAsync(delStd);
+        await RefreshStudents();
+    }
+
+    void setClass(ChangeEventArgs e)
+    {
+        NewStudent.class_id = Convert.ToInt32(e.Value.ToString());
+    }
+
+    void setCountry(ChangeEventArgs e)
+    {
+        NewStudent.country_id = Convert.ToInt32(e.Value.ToString());
+    }
+}
+
+
+
+<SurveyPrompt Title="" />
+
+
+
