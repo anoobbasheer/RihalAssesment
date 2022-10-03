@@ -8,10 +8,7 @@ namespace RihalAssesment.Data
 {
     public class StudentDbContext:DbContext
     {
-        #region constructor
-        //public StudentDbContext(DbContextOptions<StudentDbContext> options):base(options)
-        //{
-        //}
+        #region constructor        
         public StudentDbContext(DbContextOptions options) : base(options)
         {
         }
